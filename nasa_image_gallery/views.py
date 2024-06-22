@@ -5,6 +5,8 @@ from django.shortcuts import redirect, render
 from .layers.services import services_nasa_image_gallery
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import logout
+from urllib.parse import unquote_to_bytes
+import json
 
 # función que invoca al template del índice de la aplicación.
 def index_page(request):
@@ -12,17 +14,25 @@ def index_page(request):
 
 # auxiliar: retorna 2 listados -> uno de las imágenes de la API y otro de los favoritos del usuario.
 def getAllImagesAndFavouriteList(request):
-    images = []
+    images=[]
     favourite_list = []
-
+    bodyEncoded = request.body
+    bodyStr = bodyEncoded.decode('utf-8')
+    body = unquote_to_bytes(bodyStr).decode('utf-8')
+    datos_json=dict(x.split('=') for x in body.split('&'))
+    json_str = json.dumps(datos_json)
+    json_result=json.loads(json_str)
+    palabra_buscada = json_result.get('query')
+    images = services_nasa_image_gallery.getAllImages(palabra_buscada)
     return images, favourite_list
 
 # función principal de la galería.
 def home(request):
     # llama a la función auxiliar getAllImagesAndFavouriteList() y obtiene 2 listados: uno de las imágenes de la API y otro de favoritos por usuario*.
     # (*) este último, solo si se desarrolló el opcional de favoritos; caso contrario, será un listado vacío [].
-    images = []
-    favourite_list = []
+    images, favourite_list = getAllImagesAndFavouriteList(request)
+    #images = []
+    #favourite_list = []
     return render(request, 'home.html', {'images': images, 'favourite_list': favourite_list} )
 
 
